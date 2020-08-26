@@ -1,0 +1,2 @@
+#define FTEXT_API __declspec(dllexport)
+#define FTEXT_API __declspec(dllimport)

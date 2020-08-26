@@ -1,0 +1,7 @@
+﻿  ftExt.cpp
+  fnc2.cpp
+C:\Users\onopa\source\repos\ftExt\ftExt\fnc2.cpp(1,1): fatal error C1010: unexpected end of file while looking for precompiled header. Did you forget to add '#include "pch.h"' to your source?
+  radio.cpp
+C:\Users\onopa\source\repos\ftExt\ftExt\radio.cpp(1,1): fatal error C1010: unexpected end of file while looking for precompiled header. Did you forget to add '#include "pch.h"' to your source?
+  steam.cpp
+C:\Users\onopa\source\repos\ftExt\ftExt\steam.cpp(1,1): fatal error C1010: unexpected end of file while looking for precompiled header. Did you forget to add '#include "pch.h"' to your source?
