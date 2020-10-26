@@ -10,13 +10,14 @@
 #define FTEXT_API __declspec(dllimport)
 #endif
 
+#include <stdio.h>
+#include <iostream>
 #include <windows.h>
 #include <string>
 #include <cstring>
 #include <sstream>
 #include <utility>
 #include <limits.h>
-#include <iostream>
 #include <fstream>
 #include <comdef.h>
 #include <Wbemidl.h>
@@ -24,7 +25,6 @@
 #include <string>
 #include <sysinfoapi.h>
 #include <windows.h>
-#include <stdio.h>
 #include <thread>
 #include <wincrypt.h>
 #include <iterator>
@@ -35,14 +35,21 @@
 #include <time.h>
 #include <random>
 #include <future>
+#include <conio.h>
+#include <shlobj.h> //SHLDialog
 
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
+
+#include "bass\bass.h"
+#include "bass\basshls.h"
+#include "bass\bassenc.h"
+#include "bass\bassenc_mp3.h"
+
+//миниаудио
+#define MINIAUDIO_IMPLEMENTATION
+#include "miniaudio.h"
 
 extern "C"
 {
-	//-- Вызывается движком когда заканчивает работу
-	__declspec (dllexport) void __stdcall RVExtensionRegisterCallback(int(*callbackProc)(char const* name, char const* function, char const* data));
 	//--- Вызывается только движком, просто возврат версии
 	__declspec (dllexport) void __stdcall RVExtensionVersion(char* output, int outputSize);
 	//--- STRING вызывает екстеншн STRING

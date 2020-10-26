@@ -1,4 +1,5 @@
 ﻿// ftExt.cpp : Defines the exported functions for the DLL.
+
 #include "pch.h" 
 
 /*
@@ -39,10 +40,12 @@
 				
 */
 
-#pragma comment(lib, "wbemuuid.lib")
+#pragma comment (lib, "winmm.lib")
+
 using namespace std;
 #define CURRENT_VERSION "1.0.0 by FT5571 / rimasrp.life copyright"
 #define MACROS_STRNCPY(x) strncpy_s(output, outputSize, x, _TRUNCATE)
+
 
 void getTime(char* output, int outputSize)
 {
@@ -78,14 +81,8 @@ string random_string(int len)
 void strcopyN(char* string1, char* string2, int n) {
 	for (int i = 0; i < n; i++) {
 		string1[i] = string2[i];
-	}
+	}  
 }
-
-int(*callbackPtr)(char const*) = nullptr;
-void __stdcall RVExtensionRegisterCallback(int(*callbackProc)(char const*))
-{
-	callbackPtr = callbackProc;
-};
 
 //--- name callExtension function
 void __stdcall RVExtension(char* output, int outputSize, const char* function)
@@ -138,30 +135,46 @@ int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function
 	}else if (!strcmp(function, "createScreen"))
 	{
 		return 200;
-	}else
-	// Радио
-	if (!strcmp(function, "create"))
-	{
-		return 200;
-	}else if (!strcmp(function, "pos"))
-	{
-		return 200;
 	}
-	else if (!strcmp(function, "orient"))
-	{
-		return 200;
-	}
-	else if (!strcmp(function, "vol"))
-	{
-		return 200;
-	}
-	else if (!strcmp(function, "destroy"))
-	{
-		return 200;
-	}
-	else if (!strcmp(function, "urlInfo"))
-	{
-		return 200;
-	};
+	else
+		// Радио
+		if (!strcmp(function, "create"))
+		{
+			int i = 0;
+			std::string str[8];
+
+			while (i < argsCnt)
+			{
+				std::string s = args[i];
+				str[i] = s.substr(1, s.length() - 2);
+				i++;
+			}
+			string track = str[0];
+
+			
+		}
+		else if (!strcmp(function, "pos"))
+		{
+			return 200;
+		}
+		else if (!strcmp(function, "orient"))
+		{
+			return 200;
+		}
+		else if (!strcmp(function, "vol"))
+		{
+			return 200;
+		}
+		else if (!strcmp(function, "destroy"))
+		{
+			//BASS_StreamFree(stream);
+			return 200;
+		}
+		else if (!strcmp(function, "urlInfo"))
+		{
+			return 200;
+		};
 	return -1;
 };
+
+
