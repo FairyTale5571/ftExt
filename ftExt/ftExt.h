@@ -40,20 +40,3 @@
 
 
 #include "bass\bass.h"
-#include "bass\basshls.h"
-#include "bass\bassenc.h"
-#include "bass\bassenc_mp3.h"
-
-//миниаудио
-#define MINIAUDIO_IMPLEMENTATION
-#include "miniaudio.h"
-
-extern "C"
-{
-	//--- Вызывается только движком, просто возврат версии
-	__declspec (dllexport) void __stdcall RVExtensionVersion(char* output, int outputSize);
-	//--- STRING вызывает екстеншн STRING
-	__declspec (dllexport) void __stdcall RVExtension(char* output, int outputSize, const char* function);
-	//--- STRING вызывает екстеншн ARRAY
-	__declspec (dllexport) int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function, const char** args, int argsCnt);
-}
