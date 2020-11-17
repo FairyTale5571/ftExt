@@ -10,10 +10,10 @@
 
 	Входящие инпуты в RVExtensionArgs
 	Радио:
-		create,[id, url, volume, posX, posY, posZ]
-		pos, [id, posX, posY, posZ]
+		create,[url, volume, posX, posY, posZ]
+		pos, [posX, posY, posZ, | eyeX, eyeY, eyeZ, | velX, velY, velZ]
 		orient [[eyeDirection player], [vectorUp player]]
-		vol, [id, volume]
+		vol, [volume]
 		destroy [id]
 		urlInfo [id, url]
 
@@ -27,7 +27,7 @@ using namespace std;
 #define CURRENT_VERSION "1.0.0 by FT5571 / rimasrp.life copyright"
 #define MACROS_STRNCPY(x) strncpy_s(output, outputSize, x, _TRUNCATE)
 #define CBK(x,y) callbackPtr("ftExt",x,y)
-
+//#define Check(X) CheckError(X, __FILE__, __LINE__)
 
 extern "C"
 {
@@ -45,9 +45,13 @@ BOOL RadioInited = false;
 HSTREAM stream;
 std::string buf;
 FILE* file = NULL;
-BASS_3DVECTOR* pos;
 
-void getTime(char* output, int outputSize)
+BASS_3DVECTOR* pos;
+BASS_3DVECTOR* ori;
+BASS_3DVECTOR* vel;
+
+void 
+getTime(char* output, int outputSize)
 {
 	time_t t = time(0);   // get time now
 	struct tm* now = localtime(&t);
@@ -69,7 +73,8 @@ void getTime(char* output, int outputSize)
 	strncpy(output, s.c_str(), outputSize);
 }
 
-string random_string(int len)
+string 
+random_string(int len)
 {
 	std::string str("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 	std::random_device rd;
@@ -78,7 +83,8 @@ string random_string(int len)
 	return str.substr(0, len);
 }
 
-void loadLibs()
+void 
+loadLibs()
 {
 	HINSTANCE hModule = NULL;
 #ifdef _WIN64
@@ -98,13 +104,15 @@ void loadLibs()
 
 //--- Обработчик для игры
 int(*callbackPtr)(char const* name, char const* function, char const* data) = nullptr;
-void __stdcall RVExtensionRegisterCallback(int(*callbackProc)(char const* name, char const* function, char const* data))
+void __stdcall 
+RVExtensionRegisterCallback(int(*callbackProc)(char const* name, char const* function, char const* data))
 {
 	callbackPtr = callbackProc;
 }
 
 //--- Тут мелочь всякая
-void __stdcall RVExtension(char* output, int outputSize, const char* function)
+void __stdcall 
+RVExtension(char* output, int outputSize, const char* function)
 {
 	setlocale(LC_ALL, "russian");
 	std::string str = function;
@@ -128,23 +136,62 @@ void __stdcall RVExtension(char* output, int outputSize, const char* function)
 }
 
 //--- Вернет версию расширения в логи игры
-void __stdcall RVExtensionVersion(char* output, int outputSize)
+void __stdcall 
+RVExtensionVersion(char* output, int outputSize)
 {
 	//--- max outputSize is 32 bytes
 	MACROS_STRNCPY(CURRENT_VERSION);
 }
 
 //--- Можно скачать поток
-void __stdcall DownloadProc(const void* buffer, DWORD length, void *user) {
+void __stdcall 
+DownloadProc(const void* buffer, DWORD length, void *user) {
 	if (!file) file = fopen("temp.mp3","wb");
 	if (!buffer) fclose(file); else fwrite(buffer, 1, length, file);
 }
 
-int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function, const char** args, int argsCnt)
+/*
+void
+bvtod(const BASS_3DVECTOR& v, float* d) {
+	if (!d) return;
+	d[0] = v.x;
+	d[1] = v.y;
+	d[2] = v.z;
+}
+
+BASS_3DVECTOR*
+dtobv(float* d, BASS_3DVECTOR& v) {
+	if (!d) return;
+	v.x = d[0];
+	v.y = d[1];
+	v.z = d[2];
+	return &v;
+}
+
+BOOL
+Set3DPos(float* pos, float* ori, float* vel) {
+	BASS_3DVECTOR vpos, vori, vvel,
+	*fpos = dtobv(pos,vpos), *fori = dtobv(ori,vori), *fvel = dtobv(vel,vvel);
+	return Check(BASS_ChannelSet3DPosition(stream, fpos, fori, fvel));
+}
+
+BOOL 
+Get3DPos(float* pos, float* ori, float* vel) {
+	BASS_3DVECTOR vpos, vori, vvel;
+	BOOL re = Check(BASS_ChannelGet3DPosition(stream, &vpos, &vori, &vvel));
+	bvtod(vpos, pos);
+	bvtod(vori, ori);
+	bvtod(vvel, vel);
+	return re;
+}
+*/
+
+int __stdcall 
+RVExtensionArgs(char* output, int outputSize, const char* function, const char** args, int argsCnt)
 {
 	//--- Обработаем входящие args
 	int i = 0;
-	std::string str[8];
+	std::string str[11];
 	std::string fnStr = function;
 	while (i < argsCnt)
 	{
@@ -152,43 +199,41 @@ int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function
 		str[i] = s.substr(1, s.length() - 2);
 		i++;
 	}
-
+	if (!callbackPtr)
+		return 500;
 	if (!strcmp(function, "create"))
 	{
-		string track = str[0];
-
 
 		if (!RadioInited)
 		{
+			//"http://air.radiorecord.ru:8102/rock_320", "100", "3170.38", "3350.12", "5.00144", "0", "0", "0", "0", "0", "0"
+			string url = str[0], v = str[1], pX = str[2], pY = str[3], pZ = str[4];
+
 			//--- Загружена ли библиотека
 			loadLibs();
 
 			//--- Замутим тут 3D
-			std::cout << str[0] << "|" << str[1] << "|" << str[2] << endl;
-			float x = 0, y = 0, z = 0, vol = 0;
+			float x = 0, y = 0, z = 0, vol = 0, oriX = 0, oriY = 0, oriZ = 0, velX = 0, velY = 0, velZ = 0;
 
-			stringstream v(str[1]);
-			v >> vol;
-			vol = (vol >= 0 and vol <= 100) ? vol /= 100 : 0.5;
+			stringstream vS(v); vS >> vol; vol = (vol >= 0 and vol <= 100) ? vol /= 100 : 0.5;
 
-			stringstream g(str[2]);
-			g >> x;
-			stringstream s(str[3]);
-			s >> y;
-			stringstream a(str[4]);
-			a >> z;
-			std::cout << x << "|" << y << "|" << z << endl;
+			stringstream g_pX(pX); g_pX >> x;
+			stringstream g_pY(pY); g_pY >> y;
+			stringstream g_pZ(pZ); g_pZ >> z;
 
 			//--- Конфиги
-			BASS_SetConfig(BASS_CONFIG_BUFFER, 100);
-			BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 10);
-			BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 1);
+
+			//BASS_SetConfig(BASS_CONFIG_BUFFER, 100);
+			//BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 10);
+			//BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 1);
 
 			//--- Устройство 1, чтобы можно было регулировать громкость конкретно потока, а не всего устройства в целом
-			BASS_Init(1, 44100, BASS_DEVICE_3D | BASS_DEVICE_MONO, 0, 0);
+			if (!BASS_Init(1, 44100, BASS_DEVICE_3D | BASS_DEVICE_MONO, 0, 0)) {
+				printf("Error init: %i", BASS_ErrorGetCode());
+			};
 
 			//--- Создаем поток
-			stream = BASS_StreamCreateURL(track.c_str(), (BASS_SAMPLE_3D | BASS_SAMPLE_MONO), 0, NULL, 0);
+			stream = BASS_StreamCreateURL(url.c_str(), (BASS_SAMPLE_3D | BASS_SAMPLE_MONO), 0, NULL, 0);
 			
 			//--- Музяка играет
 			BASS_ChannelPlay(stream,TRUE);
@@ -196,9 +241,10 @@ int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function
 			//--- 3D собственно
 			BASS_Set3DFactors(1.0, 2.0, 2.0);
 			pos = new BASS_3DVECTOR(x, y, z);
-			BASS_3DVECTOR* orient = new BASS_3DVECTOR(x, y, z);
-			BASS_3DVECTOR* velocity = new BASS_3DVECTOR(x,y,z);
-			BASS_ChannelSet3DPosition(stream,pos,NULL,NULL);
+			ori = new BASS_3DVECTOR(oriX, oriY, oriZ);
+			vel = new BASS_3DVECTOR(velX, velY, velZ);
+
+			BASS_ChannelSet3DPosition(stream, pos, ori, vel);
 
 			//--- Установим громкость
 			BASS_ChannelSetAttribute(stream, BASS_ATTRIB_VOL, vol);
@@ -232,38 +278,57 @@ int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function
 		//--- Дадим игре понять что, что то там пришло
 		CBK("RRPClient_radio_refresh",s.c_str());
 		return 200;
-	}else if (!strcmp(function, "pos")) {
 
-		std::cout << str[0] << "|" << str[1] << "|" << str[2] << endl;
+	}else if (!strcmp(function, "refresh3d_pos")) {
+
+		//--- Обновляем 3D
 		float x = 0, y = 0, z = 0;
-		stringstream g(str[0]);
-		g >> x;
-		stringstream s(str[1]);
-		s >> y;
-		stringstream a(str[2]);
-		a >> z;
-		std::cout << x << "|" << y << "|" << z << endl;
+		stringstream g_pX(str[0]); g_pX >> x;
+		stringstream g_pY(str[1]); g_pY >> y;
+		stringstream g_pZ(str[2]); g_pZ >> z;
 		
 		pos->x = x;
 		pos->y = y;
 		pos->z = z;
-		BASS_ChannelSet3DPosition(stream, pos, NULL, NULL);
+
+		if (!BASS_ChannelSet3DPosition(stream, pos, ori, vel)) {
+			buf = " Update pos: Error code:" + BASS_ErrorGetCode();
+			CBK("RRPClient_radio_updatePos", buf.c_str());
+
+		};
+		BASS_Apply3D();
+		CBK("RRPClient_radio_updatePos", "Position updated");
+
+		return 200;
+	}else if (!strcmp(function, "refresh3d_orient")) {
+		float oriX = 0, oriY = 0, oriZ = 0, velX = 0, velY = 0, velZ = 0;
+
+		stringstream g_oX(str[0]); g_oX >> oriX;
+		stringstream g_oY(str[1]); g_oY >> oriY;
+		stringstream g_oZ(str[2]); g_oZ >> oriZ;
+
+		stringstream g_vX(str[3]); g_vX >> velX;
+		stringstream g_vY(str[4]); g_vY >> velY;
+		stringstream g_vZ(str[5]); g_vZ >> velZ;
+
+
+		ori->x = oriX;
+		ori->y = oriY;
+		ori->z = oriZ;
+
+		vel->x = velX;
+		vel->y = velY;
+		vel->z = velZ;
+
+		if (!BASS_ChannelSet3DPosition(stream, pos, ori, vel)) {
+			buf = std::format(" Update Orient: Error code: %i", BASS_ErrorGetCode()); ;
+			CBK("RRPClient_radio_updatePos", buf.c_str());
+		};
 		BASS_Apply3D();
 
+		CBK("RRPClient_radio_updatePos", "Orient updated");
 		return 200;
-	}else if (!strcmp(function, "orient")) {
 
-		float xE = 0, yE = 0, zE = 0;
-		stringstream g(str[0]);
-		g >> xE;
-		stringstream s(str[1]);
-		s >> yE;
-		stringstream a(str[2]);
-		a >> zE;
-
-
-
-		return 200;
 	}else if (!strcmp(function, "vol")) {
 
 		//--- Громкость в стринг, по этому конвертируем ее в int
@@ -274,7 +339,7 @@ int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function
 		printf("Volume set to %f",vol);
 
 		//--- Установим громкость
-		BASS_ChannelSetAttribute(stream, BASS_ATTRIB_VOL | BASS_ATTRIB_PAN, vol);
+		BASS_ChannelSetAttribute(stream, BASS_ATTRIB_VOL, vol);
 
 		CBK("RRPClient_radio_refresh", "Volume set");
 		return 200;
