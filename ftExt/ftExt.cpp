@@ -46,6 +46,8 @@ HSTREAM stream;
 std::string buf;
 FILE* file = NULL;
 
+char logs[256];
+
 BASS_3DVECTOR* pos;
 BASS_3DVECTOR* ori;
 BASS_3DVECTOR* vel;
@@ -241,10 +243,10 @@ RVExtensionArgs(char* output, int outputSize, const char* function, const char**
 			//--- 3D собственно
 			BASS_Set3DFactors(1.0, 2.0, 2.0);
 			pos = new BASS_3DVECTOR(x, y, z);
-			ori = new BASS_3DVECTOR(oriX, oriY, oriZ);
-			vel = new BASS_3DVECTOR(velX, velY, velZ);
+			ori = new BASS_3DVECTOR(NULL, NULL, NULL);
+			vel = new BASS_3DVECTOR(NULL, NULL, NULL);
 
-			BASS_ChannelSet3DPosition(stream, pos, ori, vel);
+			BASS_ChannelSet3DPosition(stream, pos, NULL, NULL);
 
 			//--- Установим громкость
 			BASS_ChannelSetAttribute(stream, BASS_ATTRIB_VOL, vol);
@@ -291,7 +293,7 @@ RVExtensionArgs(char* output, int outputSize, const char* function, const char**
 		pos->y = y;
 		pos->z = z;
 
-		if (!BASS_ChannelSet3DPosition(stream, pos, ori, vel)) {
+		if (!BASS_ChannelSet3DPosition(stream, pos,NULL, NULL)) {
 			buf = " Update pos: Error code:" + BASS_ErrorGetCode();
 			CBK("RRPClient_radio_updatePos", buf.c_str());
 
@@ -303,30 +305,22 @@ RVExtensionArgs(char* output, int outputSize, const char* function, const char**
 	}else if (!strcmp(function, "refresh3d_orient")) {
 		float oriX = 0, oriY = 0, oriZ = 0, velX = 0, velY = 0, velZ = 0;
 
-		stringstream g_oX(str[0]); g_oX >> oriX;
-		stringstream g_oY(str[1]); g_oY >> oriY;
-		stringstream g_oZ(str[2]); g_oZ >> oriZ;
+		stringstream g_oX(str[0]); g_oX >> oriX; ori->x = oriX;
+		stringstream g_oY(str[1]); g_oY >> oriY; ori->y = oriY;
+		stringstream g_oZ(str[2]); g_oZ >> oriZ; ori->z = oriZ;
 
-		stringstream g_vX(str[3]); g_vX >> velX;
-		stringstream g_vY(str[4]); g_vY >> velY;
-		stringstream g_vZ(str[5]); g_vZ >> velZ;
+		stringstream g_vX(str[3]); g_vX >> velX; vel->x = velX;
+		stringstream g_vY(str[4]); g_vY >> velY; vel->y = velY;
+		stringstream g_vZ(str[5]); g_vZ >> velZ; vel->z = velZ;
 
-
-		ori->x = oriX;
-		ori->y = oriY;
-		ori->z = oriZ;
-
-		vel->x = velX;
-		vel->y = velY;
-		vel->z = velZ;
-
-		if (!BASS_ChannelSet3DPosition(stream, pos, ori, vel)) {
-			buf = std::format(" Update Orient: Error code: %i", BASS_ErrorGetCode()); ;
-			CBK("RRPClient_radio_updatePos", buf.c_str());
+		if (!BASS_Set3DPosition(ori, vel, NULL, NULL)) {
+			snprintf(logs, sizeof(logs), "Error Code %i",BASS_ErrorGetCode());
+			CBK("RRPClient_radio_updatePos", logs);
 		};
 		BASS_Apply3D();
 
-		CBK("RRPClient_radio_updatePos", "Orient updated");
+		snprintf(logs, sizeof(logs), "Orient updated O|X:%f,Y:%f,Z:%f V|X:%f,Y:%f,Z:%f ", ori->x, ori->y, ori->z, vel->x, vel->y, vel->z);
+		CBK("RRPClient_radio_updatePos", logs);
 		return 200;
 
 	}else if (!strcmp(function, "vol")) {
