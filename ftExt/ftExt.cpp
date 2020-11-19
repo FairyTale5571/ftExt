@@ -274,7 +274,8 @@ RVExtensionArgs(char* output, int outputSize, const char* function, const char**
 		string s = tag;
 
 		//--- Обрежем лишнее
-		s = s.substr(13, s.length() - 15); 
+		//s = s.substr(13, s.length() - 15);
+		MACROS_STRNCPY(s.c_str());
 		s = "[\"Play\",\"" + s + "\"]";
 
 		//--- Дадим игре понять что, что то там пришло
